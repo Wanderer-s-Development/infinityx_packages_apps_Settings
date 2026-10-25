@@ -1,13 +1,14 @@
 name: Sync Upstream from Gitea
 
-on:
+'on':
   schedule:
     # Runs every Sunday at 00:00 UTC (weekly)
     - cron: '0 0 * * 0'
-  workflow_dispatch: # Allows manual 1-click trigger from GitHub web UI
+  workflow_dispatch:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   sync-gitea:
@@ -18,12 +19,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch and update branch 17 from Gitea upstream
+      - name: Fetch and check for new upstream commits from Gitea
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          echo "Checking upstream Gitea repository..."
+          echo "Checking upstream Gitea repository for new changes..."
           git remote add upstream https://gitea.com/projectInfinity-x/packages_apps_Settings.git
           git fetch upstream 17
 
@@ -34,9 +37,22 @@ jobs:
           echo "Current GitHub 17 Commit:  $CURRENT_17_HASH"
 
           if [ "$UPSTREAM_HASH" != "$CURRENT_17_HASH" ]; then
-            echo "New upstream changes detected! Updating branch 17 on GitHub..."
+            echo "🔥 NEW upstream changes detected in parent repository!"
+            echo "Updating branch '17' on GitHub with the new parent code..."
             git push origin FETCH_HEAD:refs/heads/17
-            echo "Successfully updated branch 17 to $UPSTREAM_HASH!"
+            echo "Successfully updated upstream branch '17' to $UPSTREAM_HASH."
+
+            EXISTING_PR=$(gh pr list --head 17 --base 17-breeze --state open --json number -q '.[0].number')
+            if [ -z "$EXISTING_PR" ]; then
+              echo "Opening Pull Request to merge upstream 17 into 17-breeze..."
+              gh pr create --head 17 --base 17-breeze \
+                --title "Upstream Sync: Update branch 17 from Gitea ($(date +'%Y-%m-%d'))" \
+                --body "Automated sync detected new commits from official Gitea repository: \`$UPSTREAM_HASH\`. Please review and merge into 17-breeze."
+            else
+              echo "Pull Request #$EXISTING_PR is already open for 17 -> 17-breeze."
+            fi
           else
-            echo "Branch 17 is already up to date with Gitea ($CURRENT_17_HASH). Nothing to do."
+            echo "✅ No new changes detected in parent repository."
+            echo "Branch '17' is already perfectly in sync with Gitea ($CURRENT_17_HASH)."
+            echo "Skipping push to avoid redundant operations."
           fi
