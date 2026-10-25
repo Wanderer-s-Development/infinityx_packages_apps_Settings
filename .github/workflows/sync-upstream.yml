@@ -1,0 +1,42 @@
+name: Sync Upstream from Gitea
+
+on:
+  schedule:
+    # Runs every Sunday at 00:00 UTC (weekly)
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Allows manual 1-click trigger from GitHub web UI
+
+permissions:
+  contents: write
+
+jobs:
+  sync-gitea:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch and update branch 17 from Gitea upstream
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          echo "Checking upstream Gitea repository..."
+          git remote add upstream https://gitea.com/projectInfinity-x/packages_apps_Settings.git
+          git fetch upstream 17
+
+          UPSTREAM_HASH=$(git rev-parse FETCH_HEAD)
+          CURRENT_17_HASH=$(git rev-parse origin/17 2>/dev/null || echo "none")
+
+          echo "Official Gitea 17 Commit: $UPSTREAM_HASH"
+          echo "Current GitHub 17 Commit:  $CURRENT_17_HASH"
+
+          if [ "$UPSTREAM_HASH" != "$CURRENT_17_HASH" ]; then
+            echo "New upstream changes detected! Updating branch 17 on GitHub..."
+            git push origin FETCH_HEAD:refs/heads/17
+            echo "Successfully updated branch 17 to $UPSTREAM_HASH!"
+          else
+            echo "Branch 17 is already up to date with Gitea ($CURRENT_17_HASH). Nothing to do."
+          fi
