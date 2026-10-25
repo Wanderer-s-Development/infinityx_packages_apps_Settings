@@ -197,24 +197,43 @@ public class OosAboutPreference extends BasePreferenceController implements View
     public class SystemInfoUtils {
 
     	public static void setDeviceName(TextView deviceTextView) {
-    	    String modelName = SystemProperties.get("ro.product.model");
     	    String marketName = SystemProperties.get("ro.product.marketname");
+    	    if (TextUtils.isEmpty(marketName)) {
+    	        marketName = SystemProperties.get("ro.product.odm.marketname");
+    	    }
+    	    String modelName = SystemProperties.get("ro.product.model");
+    	    if (TextUtils.isEmpty(modelName) || "breeze".equalsIgnoreCase(modelName)) {
+    	        String odmModel = SystemProperties.get("ro.product.odm.model");
+    	        if (!TextUtils.isEmpty(odmModel)) {
+    	            modelName = odmModel;
+    	        }
+    	    }
     	    String infinityDevice = SystemProperties.get("ro.infinity.device");
 
     	    SpannableStringBuilder builder = new SpannableStringBuilder();
-    	    if (!TextUtils.isEmpty(marketName)) {
-    	        SpannableString marketNameText = new SpannableString(marketName + "\n");
-    	        marketNameText.setSpan(new AbsoluteSizeSpan(21, true), 0, marketNameText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    	        builder.append(marketNameText);
-    	    } else if (!TextUtils.isEmpty(modelName)) {
-    	        SpannableString modelNameText = new SpannableString(modelName + "\n");
-    	        modelNameText.setSpan(new AbsoluteSizeSpan(21, true), 0, modelNameText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    	        builder.append(modelNameText);
+    	    String mainTitle = !TextUtils.isEmpty(marketName) ? marketName : modelName;
+    	    if (!TextUtils.isEmpty(mainTitle)) {
+    	        SpannableString titleText = new SpannableString(mainTitle + "\n");
+    	        titleText.setSpan(new AbsoluteSizeSpan(21, true), 0, titleText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    	        builder.append(titleText);
+    	    }
+
+    	    StringBuilder subText = new StringBuilder();
+    	    if (!TextUtils.isEmpty(marketName) && !TextUtils.isEmpty(modelName) && !modelName.equalsIgnoreCase(marketName)) {
+    	        subText.append(modelName);
     	    }
     	    if (!TextUtils.isEmpty(infinityDevice)) {
-    	        SpannableString infinityDeviceText = new SpannableString("(" + infinityDevice + ")");
-    	        infinityDeviceText.setSpan(new AbsoluteSizeSpan(15, true), 0, infinityDeviceText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    	        builder.append(infinityDeviceText);
+    	        if (subText.length() > 0) {
+    	            subText.append(" (").append(infinityDevice).append(")");
+    	        } else {
+    	            subText.append("(").append(infinityDevice).append(")");
+    	        }
+    	    }
+
+    	    if (subText.length() > 0) {
+    	        SpannableString subSpannable = new SpannableString(subText.toString());
+    	        subSpannable.setSpan(new AbsoluteSizeSpan(15, true), 0, subSpannable.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    	        builder.append(subSpannable);
     	    }
     	    deviceTextView.setText(builder);
     	}

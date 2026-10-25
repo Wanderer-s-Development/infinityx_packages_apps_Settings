@@ -41,15 +41,23 @@ public class AboutPhoneData {
 
     private String detectSoC() {
         String prop = SystemProperties.get(PROP_SOC);
-        if (prop != null && !prop.isEmpty()) return prop;
+        if (prop != null && !prop.isEmpty() && !prop.equalsIgnoreCase("Snapdragon") && !prop.equals("Snapdragon®")) {
+            return prop;
+        }
         prop = SystemProperties.get("ro.soc.model");
         if (prop != null && !prop.isEmpty()) return prop;
         prop = SystemProperties.get("ro.board.platform");
-        if (prop != null && !prop.isEmpty()) return prop;
+        if (prop != null && !prop.isEmpty()) {
+            if ("parrot".equalsIgnoreCase(prop) || "ravelin".equalsIgnoreCase(prop) || "sm4450".equalsIgnoreCase(prop)) {
+                return "Snapdragon® 4 Gen 2 AE";
+            }
+            return prop;
+        }
         prop = SystemProperties.get("ro.hardware.chipname");
         if (prop != null && !prop.isEmpty()) return prop;
         prop = SystemProperties.get("ro.vendor.qti.soc_name");
-        return (prop != null && !prop.isEmpty()) ? prop : "Unknown";
+        if (prop != null && !prop.isEmpty()) return prop;
+        return "Snapdragon® 4 Gen 2 AE";
     }
 
     private String detectBattery() {
